@@ -2,6 +2,7 @@ require 'base64'
 require 'openssl'
 require 'money'
 require 'nokogiri'
+require 'byebug'
 
 module OffsitePayments
   module Integrations
@@ -27,6 +28,7 @@ module OffsitePayments
         yield(configuration)
       end
 
+      mattr_accessor :production_url, :test_url
       self.production_url = 'http://3dsecure.kkb.kz/jsp/process/logon.jsp'
       self.test_url = 'https://epay.kkb.kz/jsp/process/logon.jsp'
 
@@ -50,19 +52,15 @@ module OffsitePayments
       class MissingFieldError < StandardError; end
 
       module Common
-
-        def digest_algorithm_instance
-          OpenSSL::Digest::SHA1.new
-        end
-
         def sign(content)
           raise MissingKeyFileError.new if configuration.private_key_path.blank?
           digest = digest_algorithm_instance
           pkey = nil
+          private_key_file = File.read(configuration.private_key_path)
           if configuration.private_key_pass.nil?
-            pkey = OpenSSL::PKey::RSA.new(configuration.private_key_path)
+            pkey = OpenSSL::PKey::RSA.new(private_key_file)
           else
-            pkey = OpenSSL::PKey::RSA.new(configuration.private_key_path, configuration.private_key_pass)
+            pkey = OpenSSL::PKey::RSA.new(private_key_file, configuration.private_key_pass)
           end
 
           pkey.sign(digest, content)
@@ -96,17 +94,27 @@ module OffsitePayments
             currency_code
           end
         end
+
+        private
+
+        def digest_algorithm_instance
+          OpenSSL::Digest::SHA1.new
+        end
       end
 
       class Helper < OffsitePayments::Helper
         include Common
 
         def initialize(order_id, email, amount, currency_code, options = {})
-          options.assert_valid_keys(:shop_id, :back_link :failure_back_link, :post_link, :failure_post_link, :language)
+          @fields             = {}
+          @raw_html_fields    = []
+          @test               = options[:test]
+          options.assert_valid_keys(:shop_id, :back_link, :failure_back_link, :post_link, :failure_post_link, :language)
           check_mandatory_fields(options)
           @order_id, @email, @amount, @currency_code = order_id, email, amount, currency_code
+          email @email
           options.each_pair { |k, v| self.send(k, v) if v.present? }
-          self.signed_order base64_signed_xml
+          self.signed_order encoded_request_xml
         end
 
         mapping :shop_id, 'ShopID'
@@ -130,21 +138,31 @@ module OffsitePayments
 
         def base64_signed_xml
           @signed_xml ||= begin
-            hash = {merchant_certificate_id: configuration.merchant_certificate_id, merchant_name: configuration.merchant_name, , merchant_id: configuration.merchant_id
+            hash = {merchant_certificate_id: configuration.merchant_certificate_id, merchant_name: configuration.merchant_name, merchant_id: configuration.merchant_id,
                   order_id: order_id, amount: @amount, currency: currency}
-            xml = xml_template % hash
-            sign_base64(xml)
+            xml = xml_request_template % hash
+            signature = sign_base64(xml).strip
+            hash[:signature] = signature
+            xml_request_template_with_signature % hash
           end
         end
 
+        def encoded_request_xml
+          @encoded_request_xml ||= Base64.encode64(base64_signed_xml)
+        end
+
         def check_mandatory_fields(options)
-          mandatory_fields = [:email, :back_link, :post_link]
+          mandatory_fields = [:back_link, :post_link]
           check = mandatory_fields - options.keys
           raise MissingFieldError.new("missing mandatory fields: #{check.join(', ')}") if check.present?
         end
 
-        def xml_template
-          '<merchant cert_id="%{merchant_certificate_id}" name="%{merchant_name}"><order order_id="%{order_id}" amount="%{amount}" currency="%{currency}"><department merchant_id="%{merchant_id}" amount="%{amount}"/></order></merchant>'.freeze
+        def xml_request_template
+          '<document><merchant cert_id="%{merchant_certificate_id}" name="%{merchant_name}"><order order_id="%{order_id}" amount="%{amount}" currency="%{currency}"><department merchant_id="%{merchant_id}" amount="%{amount}"/></order></merchant></document>'.freeze
+        end
+
+        def xml_request_template_with_signature
+          '<document><merchant cert_id="%{merchant_certificate_id}" name="%{merchant_name}"><order order_id="%{order_id}" amount="%{amount}" currency="%{currency}"><department merchant_id="%{merchant_id}" amount="%{amount}"/></order></merchant><merchant_sign type="RSA">%{signature}</merchant_sign></document>'.freeze
         end
       end
 
