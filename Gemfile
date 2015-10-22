@@ -3,6 +3,7 @@ gemspec
 
 gem 'jruby-openssl', :platforms => :jruby
 gem 'money', '~> 5.0'
+gem 'byebug'
 
 group :remote_test do
   gem 'mechanize'

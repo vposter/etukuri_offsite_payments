@@ -9,7 +9,7 @@ class EpayKazakhstanConfigurationTest < Test::Unit::TestCase
       config.merchant_name = 'Test shop'
       config.private_key_pass = 'nissan'
       config.merchant_id = '92061101'
-      config.public_key_path = File.expand_path('../kkbca.pem', __FILE__)
+      config.cert_file_path = File.expand_path('../kkbca.cer', __FILE__)
       config.private_key_path = File.expand_path('../test_prv.pem', __FILE__)
     end
   end
@@ -20,7 +20,7 @@ class EpayKazakhstanConfigurationTest < Test::Unit::TestCase
     assert_equal 'Test shop', configuration.merchant_name
     assert_equal 'nissan', configuration.private_key_pass
     assert_equal '92061101', configuration.merchant_id
-    assert_equal true, File.exists?(configuration.public_key_path)
+    assert_equal true, File.exists?(configuration.cert_file_path)
     assert_equal true, File.exists?(configuration.private_key_path)
   end
 end

@@ -9,17 +9,17 @@ class EpayKazakhstanHelperTest < Test::Unit::TestCase
       config.merchant_name = 'Test shop'
       config.private_key_pass = 'nissan'
       config.merchant_id = '92061101'
-      config.public_key_path = File.expand_path('../kkbca.pem', __FILE__)
+      config.cert_file_path = File.expand_path('../kkbca.cer', __FILE__)
       config.private_key_path = File.expand_path('../test_prv.pem', __FILE__)
     end
 
-    @helper = EpayKazakhstan::Helper.new(10, 'khai.le@live.com', 10, 'KZT', back_link: 'localhost/back', post_link: 'localhost/post')
+    @helper = EpayKazakhstan::Helper.new(10, 10, 'KZT', back_link: 'localhost/back', post_link: 'localhost/post', email: 'khai.le@live.com')
   end
 
   def test_basic_helper_fields
     assert_field 'email', 'khai.le@live.com'
     assert_field 'BackLink', 'localhost/back'
     assert_field 'PostLink', 'localhost/post'
-    assert_field 'Signed_Order_B64', "PGRvY3VtZW50PjxtZXJjaGFudCBjZXJ0X2lkPSIwMEMxODJCMTg5IiBuYW1l\nPSJUZXN0IHNob3AiPjxvcmRlciBvcmRlcl9pZD0iMDAwMDEwIiBhbW91bnQ9\nIjEwIiBjdXJyZW5jeT0iMzk4Ij48ZGVwYXJ0bWVudCBtZXJjaGFudF9pZD0i\nOTIwNjExMDEiIGFtb3VudD0iMTAiLz48L29yZGVyPjwvbWVyY2hhbnQ+PG1l\ncmNoYW50X3NpZ24gdHlwZT0iUlNBIj5KUVRBZlUvWHVhMlVUeEYvOXBRa3Fw\nMVZwSSsrRHpsNVVwRWJDVVh6eVZnWklZdERqS09XWDd2ZHlmbU8KS2tSZXpt\nelh5dGlOcmpMMTNRZitCRE9vNUE9PTwvbWVyY2hhbnRfc2lnbj48L2RvY3Vt\nZW50Pg==\n"
+    assert_field 'Signed_Order_B64', "PGRvY3VtZW50PjxtZXJjaGFudCBjZXJ0X2lkPSIwMEMxODJCMTg5IiBuYW1lPSJUZXN0IHNob3AiPjxvcmRlciBvcmRlcl9pZD0iMDAwMDEwIiBhbW91bnQ9IjEwIiBjdXJyZW5jeT0iMzk4Ij48ZGVwYXJ0bWVudCBtZXJjaGFudF9pZD0iOTIwNjExMDEiIGFtb3VudD0iMTAiLz48L29yZGVyPjwvbWVyY2hhbnQ+PG1lcmNoYW50X3NpZ24gdHlwZT0iUlNBIj41S2d6QlA0SDNmVXlybzNZeXRkc3psNUVLbzc1eWQyN1g1YWpqRU9MSVJsWXlmTkZDUnVSVW5rNUQ3NlBwRldkcWlTVTluOFJUNVN0dWRkUGZjQUVKUT09PC9tZXJjaGFudF9zaWduPjwvZG9jdW1lbnQ+"
   end
 end

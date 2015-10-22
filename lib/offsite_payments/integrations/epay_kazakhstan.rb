@@ -8,7 +8,7 @@ module OffsitePayments
   module Integrations
     module EpayKazakhstan
       class Configuration
-        VALID_OPTIONS_KEYS  = [:merchant_certificate_id, :merchant_name, :private_key_path, :private_key_pass, :public_key_path, :merchant_id]
+        VALID_OPTIONS_KEYS  = [:merchant_certificate_id, :merchant_name, :private_key_path, :private_key_pass, :cert_file_path, :merchant_id]
 
         attr_accessor(*VALID_OPTIONS_KEYS)
 
@@ -63,11 +63,12 @@ module OffsitePayments
             pkey = OpenSSL::PKey::RSA.new(private_key_file, configuration.private_key_pass)
           end
 
-          pkey.sign(digest, content)
+          signature = pkey.sign(digest, content)
+          signature.reverse
         end
 
         def sign_base64(base64_data)
-          Base64.encode64(sign(base64_data))
+          Base64.strict_encode64(sign(base64_data))
         end
 
         def configuration
@@ -75,14 +76,16 @@ module OffsitePayments
         end
 
         def verify(data, signature)
+          signature = signature.reverse
           digest = digest_algorithm_instance
-          pkey = OpenSSL::PKey::RSA.new(configuration.public_key_path)
-          pub_key = pkey.public_key
+          raw = File.read(configuration.cert_file_path)
+          cert = OpenSSL::X509::Certificate.new(raw)
+          pub_key = cert.public_key
           pub_key.verify(digest, signature, data)
         end
 
         def verify_base64(data, base64_signature)
-          signature = Base64.decode64(base64_signature)
+          signature = Base64.strict_decode64(base64_signature)
           verify(data, signature)
         end
 
@@ -105,14 +108,13 @@ module OffsitePayments
       class Helper < OffsitePayments::Helper
         include Common
 
-        def initialize(order_id, email, amount, currency_code, options = {})
+        def initialize(order_id, amount, currency_code, options = {})
           @fields             = {}
           @raw_html_fields    = []
           @test               = options[:test]
-          options.assert_valid_keys(:shop_id, :back_link, :failure_back_link, :post_link, :failure_post_link, :language)
+          options.assert_valid_keys(:email, :shop_id, :back_link, :failure_back_link, :post_link, :failure_post_link, :language)
           check_mandatory_fields(options)
-          @order_id, @email, @amount, @currency_code = order_id, email, amount, currency_code
-          email @email
+          @order_id, @amount, @currency_code = order_id, amount, currency_code
           options.each_pair { |k, v| self.send(k, v) if v.present? }
           self.signed_order encoded_request_xml
         end
@@ -141,18 +143,18 @@ module OffsitePayments
             hash = {merchant_certificate_id: configuration.merchant_certificate_id, merchant_name: configuration.merchant_name, merchant_id: configuration.merchant_id,
                   order_id: order_id, amount: @amount, currency: currency}
             xml = xml_request_template % hash
-            signature = sign_base64(xml).strip
+            signature = sign_base64(xml)
             hash[:signature] = signature
             xml_request_template_with_signature % hash
           end
         end
 
         def encoded_request_xml
-          @encoded_request_xml ||= Base64.encode64(base64_signed_xml)
+          @encoded_request_xml ||= Base64.strict_encode64(base64_signed_xml)
         end
 
         def check_mandatory_fields(options)
-          mandatory_fields = [:back_link, :post_link]
+          mandatory_fields = [:email, :back_link, :post_link]
           check = mandatory_fields - options.keys
           raise MissingFieldError.new("missing mandatory fields: #{check.join(', ')}") if check.present?
         end
@@ -167,6 +169,7 @@ module OffsitePayments
       end
 
       class Notification < OffsitePayments::Notification
+        include Common
         Error = Struct.new(:type, :time, :code, :message)
         Customer = Struct.new(:name, :mail, :phone)
         Order = Struct.new(:amount, :currecy, :id)
