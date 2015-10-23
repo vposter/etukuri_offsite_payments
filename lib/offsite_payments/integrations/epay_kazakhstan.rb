@@ -2,7 +2,6 @@ require 'base64'
 require 'openssl'
 require 'money'
 require 'nokogiri'
-require 'byebug'
 
 module OffsitePayments
   module Integrations
@@ -160,7 +159,7 @@ module OffsitePayments
         end
 
         def xml_request_template
-          '<document><merchant cert_id="%{merchant_certificate_id}" name="%{merchant_name}"><order order_id="%{order_id}" amount="%{amount}" currency="%{currency}"><department merchant_id="%{merchant_id}" amount="%{amount}"/></order></merchant></document>'.freeze
+          '<merchant cert_id="%{merchant_certificate_id}" name="%{merchant_name}"><order order_id="%{order_id}" amount="%{amount}" currency="%{currency}"><department merchant_id="%{merchant_id}" amount="%{amount}"/></order></merchant>'.freeze
         end
 
         def xml_request_template_with_signature
