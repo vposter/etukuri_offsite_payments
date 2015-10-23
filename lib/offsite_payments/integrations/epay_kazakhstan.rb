@@ -107,13 +107,16 @@ module OffsitePayments
       class Helper < OffsitePayments::Helper
         include Common
 
-        def initialize(order_id, amount, currency_code, options = {})
+        def initialize(order, account = nil, options = {})
           @fields             = {}
           @raw_html_fields    = []
-          @test               = options[:test]
+          options.symbolize_keys!
+          order.symbolize_keys!
           options.assert_valid_keys(:email, :shop_id, :back_link, :failure_back_link, :post_link, :failure_post_link, :language)
           check_mandatory_fields(options)
-          @order_id, @amount, @currency_code = order_id, amount, currency_code
+          @order_id       = order[:id]
+          @amount         = order[:amount]
+          @currency_code  = order[:currency]
           options.each_pair { |k, v| self.send(k, v) if v.present? }
           self.signed_order encoded_request_xml
         end
