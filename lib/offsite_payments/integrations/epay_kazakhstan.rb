@@ -173,9 +173,11 @@ module OffsitePayments
       class Notification < OffsitePayments::Notification
         include Common
         Error = Struct.new(:type, :time, :code, :message)
-        Customer = Struct.new(:name, :mail, :phone)
-        Order = Struct.new(:amount, :currecy, :id)
+        Customer = Struct.new(:name, :email, :phone)
+        Order = Struct.new(:amount, :currency, :id)
         Payment = Struct.new(:merchant_id, :amount, :reference, :response_code, :approval_code, :timestamp)
+
+        attr_reader :response
 
         def has_error?
           @has_error ||= @xml_doc.xpath('//error').any?
@@ -186,7 +188,7 @@ module OffsitePayments
             @error ||= Error.new.tap do |e|
               error_node = @xml_doc.xpath('//error')
               e.type = error_node.xpath('./@type').to_s
-              e.time = DateTime.parse(error_node.xpath('./@time').to_s)
+              e.time = Time.parse(error_node.xpath('./@time').to_s)
               e.code = error_node.xpath('./@code').to_s
               e.message = error_node.inner_text
             end
@@ -198,7 +200,7 @@ module OffsitePayments
             @customer = Customer.new.tap do |c|
               customer_node = @xml_doc.xpath('//bank/customer')
               c.name = customer_node.xpath('./@name').to_s
-              c.mail = customer_node.xpath('./@mail').to_s
+              c.email = customer_node.xpath('./@mail').to_s
               c.phone = customer_node.xpath('./@phone').to_s
             end
           end
@@ -222,7 +224,7 @@ module OffsitePayments
           unless has_error?
             @payment ||= Payment.new.tap do |p|
               payment_node = @xml_doc.xpath('//payment')
-              p.timestamp = DateTime.parse(payment_node.xpath('../@timestamp').to_s)
+              p.timestamp = Time.parse(payment_node.xpath('../@timestamp').to_s)
               p.amount = payment_node.xpath('./@amount').to_s.to_i
               p.reference = payment_node.xpath('./@reference').to_s
               p.response_code = payment_node.xpath('./@response_code').to_s

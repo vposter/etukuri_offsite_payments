@@ -15,9 +15,46 @@ class EpayKazakhstanNotificationTest < Test::Unit::TestCase
     @notification = EpayKazakhstan.notification(http_raw_data)
   end
 
-  def test_aknowledge
-    assert @notification.acknowledge
+  # def test_aknowledge
+  #   assert @notification.acknowledge
+  # end
+
+  def test_has_error?
+    assert_equal @notification.has_error?, false
   end
+
+  def test_customer
+    customer = @notification.customer
+    assert_equal customer.name, "Ucaf Test Maest"
+    assert_equal customer.email, "SeFrolov@kkb.kz"
+    assert_equal customer.phone, ""
+  end
+
+  def test_order
+    order = @notification.order
+    assert_equal order.amount, 1000
+    assert_equal order.id, '0706172110'
+    assert_equal order.currency, '398'
+  end
+
+  def test_payment
+    payment = @notification.payment
+    assert (payment.timestamp - Time.parse('2006-07-06 17:21:50')) == 0
+    assert_equal payment.amount, 1000
+    assert_equal payment.reference, "618704198173"
+    assert_equal payment.response_code, "00"
+    assert_equal payment.merchant_id, "92056001"
+    assert_equal payment.approval_code, "447753"
+  end
+
+  def test_bank_name
+    assert_equal @notification.bank_name, "Kazkommertsbank JSC"
+  end
+
+  def test_merchant_name
+    assert_equal @notification.merchant_name, "test merch"
+  end
+
   private
 
   def http_raw_data
