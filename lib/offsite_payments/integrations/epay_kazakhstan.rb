@@ -28,8 +28,8 @@ module OffsitePayments
       end
 
       mattr_accessor :production_url, :test_url
-      self.production_url = 'http://3dsecure.kkb.kz/jsp/process/logon.jsp'
-      self.test_url = 'https://epay.kkb.kz/jsp/process/logon.jsp'
+      self.production_url = 'https://epay.kkb.kz/jsp/process/logon.jsp'
+      self.test_url = 'https://testpay.kkb.kz/jsp/process/logon.jsp'
 
       def self.service_url
         mode = OffsitePayments.mode
