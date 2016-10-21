@@ -69,7 +69,7 @@ module OffsitePayments #:nodoc:
         mapping :version, 'Version'
 
         # This is your Merchant ID as set in MPG (will be provided by your MPG Provider).
-        mapping :merchant_id, 'MerId'
+        mapping :merchant_id, 'MerID'
 
         # This is your Acquierer ID (will be provided by your MPG Provider)
         mapping :acquirer_id, 'AcqID'
